@@ -17,7 +17,6 @@ router.get('/test1', function(req, res, next) {
   res.end();
 });
 
-
 // localhost:3000/sera
 router.get('/sera', function(req, res, next) {
   const obj = {id:'aresgnos', name:'송세라', age:8};
