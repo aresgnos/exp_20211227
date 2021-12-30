@@ -109,4 +109,95 @@ router.get('/select', async function(req, res, next) {
 
 });
 
+// 물품 1개 조회(이미지 포함) : http://localhost:3000/item/selectone?code=10001
+router.get('/selectone', async function(req, res, next) {
+  try {
+      const code = Number(req.query.code);
+      const dbConn = await db.connect(DBURL);
+      const coll = dbConn.db(DBNAME).collection("item");
+
+      const result = await coll.findOne(
+        {_id : code}, // 조건
+        {projection : {filename:0, filedata:0, filesize:0, filetype:0}}, //필요한 항목만, // 0=빼겠다.안 가져오겠다.
+      );
+      console.log(result); // 확인
+      // '/item/image?no=10008' = 이미지 url
+      
+      // 이미지는 데이터를 전달X, 이미지를 볼 수 있는 URL정보를 전달한다.
+      result['image'] = '/item/image?no=' + code;
+      return res.send({status:200, result:result});
+  }
+
+  catch(err){
+    console.error(err);
+    return res.send({status:-1, result : err});
+  } 
+});
+
+// 물품 삭제 : http://localhost:3000/item/delete?code=10001
+router.delete('/delete', async function(req, res, next) {
+  try {
+      const code = Number(req.query.code);
+      const dbConn = await db.connect(DBURL);
+      const coll = dbConn.db(DBNAME).collection("item");
+
+      const result = await coll.deleteOne({_id : code});
+        if(result.deletedCount === 1){
+            return res.send({status:200});
+        }
+        return res.send({status:0});
+    }
+    catch(err){
+      console.error(err);
+      return res.send({status:-1, result : err});
+} 
+});
+
+// 물품 수정 : http://localhost:3000/item/update?code=10001
+// query + body 혼용
+router.put('/update', upload.single("file"), 
+                        async function(req, res, next) {
+  try {
+      let code = Number(req.query.code);
+      // 물품명, 물품내용, 물품가격, 재고수량, 이미지 변동
+      
+      // const = 상수, 처음 만든 값에 +,-가 불가능(변경 불가능)
+      // let, var = 변수, 처음 만든 값에 +,- 가능 (변경 가능)
+      let obj = {
+        name     : req.body.name, 
+        content  : req.body.content, 
+        price    : req.body.price, 
+        quantity : req.body.quantity, 
+    };
+
+    if (typeof req.file !== 'undefined') {
+          obj['filename'] = req.file.originalname, 
+          obj.filetype    = req.file.mimetype,
+          obj.filedata    = req.file.buffer,
+          obj.filesize    = req.file.size
+        }
+
+      console.log(code);
+      console.log(obj);
+
+      const dbConn = await db.connect(DBURL);
+      const coll = dbConn.db(DBNAME).collection("item");
+      const result = await coll.updateOne(
+            { _id : code }, //조건
+            { $set : obj } // 실제 변경할 내용
+        );
+        console.log(result);
+        if(result.modifiedCount === 1){
+            return res.send({status:200});
+        }
+        return res.send({status:0});
+    }    
+    catch(err){
+      console.error(err);
+      return res.send({status:-1, result : err});
+  } 
+}); 
+
+
+
 module.exports = router;
