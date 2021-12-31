@@ -27,3 +27,6 @@ let는 나중에 변경할 수도 있는 것들
 vue에서
 물품등록 - 이미지 첨부할 때
 console에서 파일이 어디에 들어있는지 봐야함.
+
+
+https://antoniandre.github.io/vueper-slides/

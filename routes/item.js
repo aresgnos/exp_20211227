@@ -124,7 +124,7 @@ router.get('/selectone', async function(req, res, next) {
       // '/item/image?no=10008' = 이미지 url
       
       // 이미지는 데이터를 전달X, 이미지를 볼 수 있는 URL정보를 전달한다.
-      result['image'] = '/item/image?no=' + code;
+      result['image'] = '/item/image?no=' + code +'&dt=' + new Date().getTime();
       return res.send({status:200, result:result});
   }
 
@@ -197,6 +197,158 @@ router.put('/update', upload.single("file"),
       return res.send({status:-1, result : err});
   } 
 }); 
+
+// 물품 일괄 등록 : http://localhost:3000/item/insertbatch
+router.post('/insertbatch', upload.array("file"), 
+                    async function(req, res, next) {
+
+    try {
+        const dbConn = await db.connect(DBURL);
+        const coll = dbConn.db(DBNAME).collection("sequence"); 
+
+        // const aaa = ['aaa', 'bbb', 'ccc'] ; //aaa.length => 3
+        // console.log( aaa[1] ) = 'bbb'
+
+        const count = req.body.name.length;
+        let arr = []; //[ {obj},{obj} ]
+        for(let i=0; i<count; i++){
+        const result = await coll.findOneAndUpdate(
+            {_id:'SEQ_ITEM_NO'}, { $inc : { seq :1 } }
+        );
+
+        let obj = {
+            _id     : result.value.seq,
+            name    : req.body.name[i],
+            content : req.body.content[i],
+            price   : req.body.price[i],
+            quantity : req.body.quantity[i],
+            filename : req.files[i].originalname,
+            filedata : req.files[i].buffer,
+            filetype : req.files[i].mimetype,
+            filesize : req.files[i].size,
+            regdate : new Date()
+        };
+
+        arr.push(obj);
+      }
+
+      const coll1 = dbConn.db(DBNAME).collection("item");
+      const result1 = await coll1.insertMany(arr); //[{},{}]
+      console.log(result1);
+
+      if (result1.insertedCount === count){
+        return res.send({status :200});
+
+      }
+      return res.send({status:0});
+
+        // coll.insertOne({    });
+        // coll.insertMany([{},{},{}]); => arr.push(obj);
+
+        // console.log(req);
+        // console.log(req.files); // 여러개일 경우
+        // console.log(req.body) // 물품명, 내용, 가격, 수량 
+              
+      }
+
+    catch(err){
+        console.error(err);
+        return res.send({status:-1, result : err});
+      }
+});
+
+// 물품 일괄 삭제 : http://localhost:3000/item/deletebatch
+router.delete('/deletebatch', async function(req, res, next) {
+    try {
+
+        // req.body => {code : [10020, 10021, 1003]} 이 방식도 있고
+        // req.body.code[0], req.body.code[1]
+
+        // [ { code: 10020 }, { code: 10021 }, { code: 10019 } ] (cmd에 이렇게 옴) 이 방식도 있고
+        // req.body[0].code    req.body[1].code
+
+        console.log(req.body);
+        let arr = []; // [1,2,3]의 형태로 와야함
+        for(let i=0; i< req.body.length; i++) { // 0 1 2
+            arr.push( req.body[i].code );
+        }
+
+        const dbConn = await db.connect(DBURL);
+        const coll = dbConn.db(DBNAME).collection("item");
+
+        const result = coll.deleteMany({
+            _id : { $in : arr } // arr = 위에서 선언한 변수
+        });
+        console.log(result);
+        // {acknowledged: true, deletedCount: 3}
+
+        if(result.deletedCount === req.body.length){
+          return res.send({status:200});
+        }        
+        return res.send({status:0});
+    }
+    catch(err){
+      console.error(err);
+      return res.send({status:-1, result : err});
+      }
+    });
+
+// 물품 일괄 수정 : http://localhost:3000/item/updatebatch
+router.put('/updatebatch', upload.array("file"), async function(req, res, next) {
+    try {
+      console.log(req.body);
+      const count = req.body.name.length;
+
+      const dbConn = await db.connect(DBURL);
+      const coll = dbConn.db(DBNAME).collection("item");
+
+      let cnt = 0;
+      for(let i=0; i<count; i++){ // 0 1
+
+        // 변경할 내용들
+        let obj = {
+            name     : req.body.name[i],
+            content  : req.body.content[i],
+            price    : req.body.price[i],
+            quantity : req.body.quantity[i],
+        };
+
+        // req.files ==> [{},{}]
+        if(req.files[i] === null ){
+            console.log('null');
+        }
+        // req.files ==> []
+        if(typeof req.files[i] !== 'undefined'){
+            obj['filename'] = req.files[i].originalname;
+            obj['filedata'] = req.files[i].buffer;
+            obj['filetype'] = req.files[i].mimetype;
+            obj.filesize = req.files[i].size;
+        }
+
+        const result = await coll.updateOne(
+            { _id : Number(req.body.code[i]) },
+            { $set : obj } 
+
+          );
+          console.log(result);
+          
+          cnt += result.modifiedCount; // cnt에 누적하기
+      }
+      if (cnt === count){
+        return res.send({status:200});
+      }
+      return res.send({status:0});
+
+    }
+    catch(err){
+      console.error(err);
+      return res.send({status:-1, result : err});
+  } 
+
+});
+
+
+
 
 
 

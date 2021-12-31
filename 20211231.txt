@@ -1,0 +1,18 @@
+20211231 2021년 마지막날..
+
+cmd창 라이브러리 확인하기
+어디에 들어있는지, 내가 보낸 내용이
+
+name : {'aaa', 'bbb'}
+name[0] = 'aaa'
+for (i돌려야 될만큼)
+
+updatemany : 데이터를 일괄적이로 같이 바꿔버림
+
+console.log("Seller.vue => handleupdateItem")
+
+메소드 할 때마다
+console.log("Seller.vue => handleupdateItem")
+넣어서 메소드 작동하는지 확인하자.
+
+시간은 항상 흘러가니까,,,,
