@@ -28,8 +28,10 @@ router.post('/insert', async function(req, res, next) {
             _id : req.body.uid,
             userpw : hash,
             userage : Number(req.body.uage),
+            username : req.body.uname,
             userbirth : req.body.ubirth,
             useremail : req.body.uemail,
+            useremail2 : req.body.uemail2,
             usercheck : req.body.ucheck,
             usergender : Number(req.body.ugender)
         };
