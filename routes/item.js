@@ -347,6 +347,49 @@ router.put('/updatebatch', upload.array("file"), async function(req, res, next) 
 
 });
 
+// 체크항목 조회하기 : http://localhost:3000/item/selectcheck
+// {"chks":[10037,10038,10039]}   => req.body.chks[0]
+// [{"chks":10037},{"chks":10038},{"chks":10039}] => req.body[0].chk
+router.post('/selectcheck', async function(req, res, next) {
+  try {
+      const chks = req.body.chks; //[10037, 10038, 10039]
+      console.log(chks);
+
+      const dbConn   = await db.connect(DBURL);
+      const coll     = dbConn.db(DBNAME).collection("item");
+
+      // { _id  : {$eq:10037} } === { _id : 10037}    EQ
+      // { _id  : {$ne:10039} }                       NE
+      // { _id  : {$in:[10037, 100038, 10039]} }      IN 
+      // { $or  : [{_id:10037}, {_id:100038}] }       OR
+      // { $and : [{_id:10037}, {name:'aaa'}] }       AND
+      // { _id  : {$gt:10030} }                        > 
+      // { _id  : {$gte:10030} }                       >= 
+      // { _id  : {$lt:10030} }                        < 
+      // { _id  : {$lte:10030} }                       <= 
+      const result   = await coll.find(
+          { _id :{$in: chks } },
+          { projection: {filedata:0,filename:0,filetype:0,filesize:0} }
+      )
+      .sort({_id : -1}).toArray();
+
+      //[{0},{1},{2}] => result[0]['image']
+      // for(let i=0; i<result.length; i++){
+      //     result[i]['image'] = '/item/image?no='+result[i]._id;
+      // }
+
+      for(let tmp of result){ //[{tmp},{tmp}]
+          tmp['image'] = '/item/image?no=' + tmp._id;
+      }
+      console.log(result); //key가 7개인 object로 변경
+
+      return res.send({status:200, result:result});
+  }
+  catch(err) {
+      console.error(err);
+      return res.send({status:-1, result : err});
+  }
+});
 
 
 
