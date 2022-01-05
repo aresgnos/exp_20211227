@@ -12,6 +12,7 @@ const DBNAME  = require('../config/db').mongodbDB;
 const jwt = require('jsonwebtoken');
 const jwtKey = require('../config/auth').securityKey;
 const jwtOptions = require('../config/auth').options;
+const checkToken = require('../config/auth').checkToken;
 
 //회원가입, 로그인시 암호 hash용(못알아보게 특수문자 변형)
 const crypto = require('crypto');
@@ -28,12 +29,11 @@ router.post('/insert', async function(req, res, next) {
             _id : req.body.uid,
             userpw : hash,
             userage : Number(req.body.uage),
-            username : req.body.uname,
             userbirth : req.body.ubirth,
             useremail : req.body.uemail,
-            useremail2 : req.body.uemail2,
             usercheck : req.body.ucheck,
-            usergender : Number(req.body.ugender)
+            usergender : Number(req.body.ugender),
+            username : req.body.uname,
         };
 
         console.log(obj);
@@ -105,7 +105,7 @@ router.post('/select', async function(req, res, next) {
         if(result !== null){ // DB에 일치하는 경우
             const token = {
                 token : jwt.sign( 
-                    { uid:result._id }, // 토큰에 포함할 내용들...
+                    { uid:result._id }, // 토큰에 포함할 내용들... 더 추가 가능
                      jwtKey, // 토큰 생성 키
                      jwtOptions // 옵션
                 ),
@@ -124,6 +124,21 @@ router.post('/select', async function(req, res, next) {
     }
 });
 
+// 마이페이지
+// 회원 정보 수정 : http://localhost:3000/member/mypage?menu=1
+// 비밀번호 변경  : http://localhost:3000/member/mypage?menu=2
+// 회원 탈퇴      : http://localhost:3000/member/mypage?menu=3
+// 로그인시에 토큰이 발행되었고 토큰은 아이디를 포함하고 있으므로 아이디를 주지 않아도 된다.
+router.put('/mypage', checkToken, async function(req, res, next) {
+    try{
+        console.log("2. member.js =>", req.body);
+        return res.send({status:200});
+    }
+    catch(err) {
+        console.error(err);
+        return res.send({status:-1, result : err});
+    }
+});
 
 
 
