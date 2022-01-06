@@ -22,18 +22,19 @@ var self = module.exports = {
             
             // 1. 토큰이 있는가
             if(!token){
-                return res.send({status:888, result:'유효하지 않는 토큰입니다.'});
+                return res.send({status:-1, result:'토큰이 없습니다.'});
             }
 
             // 2. 토큰 decode 추출(토큰과 암호키)
             const user = jwt.verify(token, self.securityKey);
+
             if(typeof user.uid === 'undefined'){
-                return res.send({status:888, result:'유효하지 않는 토큰입니다.'});
+                return res.send({status:-1, result:'유효하지 않는 토큰입니다.'});
             }
 
             console.log('토큰에서 추출한 아이디=>' , user.uid);
-            
-            // member에는 아이디가 없기 때문에 아이디를 포함시켜줌
+            // 아이디가 포함되어 있징 않기 떄문에 
+            // 수동으로 body에 포함시켜줌 (따라서 아이디, 이메일, 나이 전송)
             req.body.userid = user.uid;
 
             console.log(req.headers.token);
@@ -46,11 +47,22 @@ var self = module.exports = {
 
             // next가 없으면 member.js파일의 /mypage로 전달 불가
             // 위쪽에서 토큰에 대한 유효성을 모두 pass할 경우 다음으로 넘김
+            // member.js가 호출 (이메일, 나이 정보를 넘겨줌)
             next();
-
         }
+
         catch(err){
             console.error(err);
+            if(err.message === 'invalid signature'){
+                return res.send({status:-1, result : "인증실패"});
+            }
+            else if(err.message === 'jwt expired'){
+                return res.send({status:-1, result : "시간만료"});
+            }
+            else if(err.message === 'invalid token'){
+                return res.send({status:-1, result : "유효하지 않는 토큰"});
+            }
+            return res.send({status:-1, result : err});
         }
     }
 }

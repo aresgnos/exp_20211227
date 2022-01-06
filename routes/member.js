@@ -131,8 +131,71 @@ router.post('/select', async function(req, res, next) {
 // 로그인시에 토큰이 발행되었고 토큰은 아이디를 포함하고 있으므로 아이디를 주지 않아도 된다.
 router.put('/mypage', checkToken, async function(req, res, next) {
     try{
-        console.log("2. member.js =>", req.body);
-        return res.send({status:200});
+        // **console.log(req.query.menu); => 넘어오는 결과 정보, cmd로 확인
+        // **console.log(typeof req.query.menu); => 어느 타입인지 cmd로 확인 둘 다 꼭 해봐야 함!!
+        // 실제로 console로 찍어보는게 중요!!
+
+        const menu = Number(req.query.menu);
+
+        const dbConn   = await db.connect(DBURL);
+        const coll     = dbConn.db(DBNAME).collection("member"); // 셋 다 같은 컬렉션을 쓰기 때문에 밖으로 뺀다.
+
+        if(menu === 1){
+            const result = await coll.updateOne(
+                { _id : req.body.userid }, // 조건
+                { $set : { userage : req.body.userage, useremail:req.body.useremail }}, // 변경내용
+            );
+        
+            console.log(result); // 실패 or 성공
+            if(result.modifiedCount === 1){
+                return res.send({status:200});
+            }
+            return res.send({status:0});
+        }
+        else if(menu === 2){
+            // console.log(req.body.userid); 아이디(변경X)
+            // console.log(req.body.userpw); 현재 암호
+            // console.log(req.body.userpw1); 바꿀 암호
+
+            const hash = crypto.createHmac('sha256', req.body.userid) 
+                            .update(req.body.userpw).digest('hex');
+
+            const hash1 = crypto.createHmac('sha256', req.body.userid) 
+                            .update(req.body.userpw1).digest('hex');
+
+            const result = await coll.updateOne(
+                { _id:req.body.userid, userpw:hash }, // 조건 아이디와 현재암호가 일치하는 조건
+                { $set : { userpw:hash1 }}, // 변경할 내용 = 바꿀 암호
+            );
+
+            console.log(result); // 실패 or 성공
+            if(result.modifiedCount === 1){
+                return res.send({status:200});
+            }
+            return res.send({status:0});
+        }
+        else if(menu === 3){
+            console.log(req.body.userid);
+            console.log(req.body.userpw);
+
+            const hash = crypto.createHmac('sha256', req.body.userid) 
+                            .update(req.body.userpw).digest('hex');
+
+            const result = await coll.deleteOne(
+                { _id:req.body.userid, userpw:hash } // 삭제 조건 : 아이디, 암호 일치할 경우
+            );
+
+            console.log(result);
+            // 삭제보다는 필요시에 중요 정보를 updateOne.
+            if(result.deletedCount === 1){
+                return res.send({status:200});
+            }
+            return res.send({status:0});
+        }
+        return res.send({status:-1, result:"메뉴정보 없음"});
+
+        // console.log("2. member.js =>", req.body); // 아이디, 이메일, 나이가 포함되어 있어야함.
+        // return res.send({status:200});
     }
     catch(err) {
         console.error(err);
@@ -140,6 +203,27 @@ router.put('/mypage', checkToken, async function(req, res, next) {
     }
 });
 
+
+// 회원 정보 전달 (한개) : http://localhost:3000/member/selectone
+router.get('/selectone', checkToken, async function(req, res, next) {
+    try{
+
+        // 아이디 : req.body.userid(auth.js에 수동으로 전달!!)
+        const dbConn   = await db.connect(DBURL);
+        const coll     = dbConn.db(DBNAME).collection("member");
+
+        const result = await coll.findOne(
+            { _id : req.body.userid }, // 조건
+            { projection : { userpw:0 }} // 필요없는 항목 제거
+        );
+        return res.send({status:200, result:result});
+        
+    }
+    catch(err) {
+        console.error(err);
+        return res.send({status:-1, result : err});
+    }
+});
 
 
 
