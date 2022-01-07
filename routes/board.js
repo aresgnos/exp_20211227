@@ -98,6 +98,7 @@ router.get('/select', async function(req, res, next) {
     try {
         // 페이지 정보가 전달 (몇페이지인지)
         const page = Number(req.query.page);
+        const text = req.query.text;
 
         // 페이지가 1일 경우 -> skip(0) -> skip( (page-1) * 10 ) 
         // 페이지가 2일 경우 -> skip(10)     10개씩 가야하니까
@@ -107,7 +108,10 @@ router.get('/select', async function(req, res, next) {
         const coll = dbConn.db("db216").collection("board");
 
         // 여러개 가져오기 find()   ..... toArray() 변환 = 배열로 가져옴
-        const result = await coll.find({ })
+        // 정규 표현식 => new RegExp(검색단어, i) i=대소문자 구분하지 않겠다.
+        // 정규 표현식은 이메일 오류, 전화번호 정확한지에 쓰임
+        const query = { title : new RegExp(text, 'i')}; 
+        const result = await coll.find(query)
                 .sort({_id:-1})  // 1일 때 : 오름차순, -1일 때 : 내림차순
                 .skip((page-1) * 10 )      // 생략할 개수
                 .limit(10)       // 10개까지만

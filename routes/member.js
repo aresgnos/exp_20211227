@@ -225,6 +225,33 @@ router.get('/selectone', checkToken, async function(req, res, next) {
     }
 });
 
+// 회원 목록 : http://localhost:3000/member/select
+router.get('/select', async function(req, res, next) {
+    try{
+        const page = Number(req.query.page);
+        const dbConn   = await db.connect(DBURL);
+        const coll     = dbConn.db(DBNAME).collection("member");
+
+        const result = await coll.find(
+        { }, // 조건
+        {projection : {
+            _id:1, userage:1, useremail:1, usercheck:1, usergender:1, username:1, userbirth:1} } // 가져올 항목만
+        )
+              .sort({_id:-1})  // 1일 때 : 오름차순, -1일 때 : 내림차순
+              .skip((page-1) * 10 )      // 생략할 개수
+              .limit(10)       // 10개까지만
+              .toArray();
+
+        const total = await coll.countDocuments({});
+        return res.send({status:200, result:result, total:total});
+        }
+
+    catch(err){
+        console.error(err);
+        return res.send({status:-1, result : err});
+    }
+});
+
 
 
 module.exports = router;
